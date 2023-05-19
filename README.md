@@ -13,5 +13,5 @@ soit installé sur la machine évidemment).
 Les types de fichiers supportés sont:
 - html
 - png
-- txt (tout autre fichier qui peut être afficher comme du texte.)
+- txt (tout autre fichier qui peut être affiché comme du texte.)
 - Absolument rien d'autre
