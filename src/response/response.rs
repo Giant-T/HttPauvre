@@ -20,11 +20,9 @@ pub async fn send_response(req: Result<Request, HttpStatusCode>, writer: &mut Wr
     println!("{:?}", req);
 
     if let Err(status) = req {
-        res.extend_from_slice(
-            format!("HTTP/1.1 {}\n", status as u32).as_bytes(),
-        );
-        res.extend_from_slice("Content-Type: text/html\n\n".as_bytes());
-        res.extend_from_slice("<h1> An error has occured </h1>".as_bytes());
+        add_string(&mut res, format!("HTTP/1.1 {}\n", status as u32));
+        add_str(&mut res, "Content-Type: text/html\n\n");
+        add_str(&mut res, "<h1> An error has occured </h1>");
 
         writer.write_all(&res).await.unwrap();
         return;
@@ -39,27 +37,40 @@ pub async fn send_response(req: Result<Request, HttpStatusCode>, writer: &mut Wr
             let _ = file.read_to_end(&mut content).await.unwrap();
             let file_type = FileType::from_str(req.path.as_str()).unwrap();
 
-            res.extend_from_slice(format!("HTTP/1.1 {}\n", HttpStatusCode::Ok as u32).as_bytes());
-            res.extend_from_slice(
-                format!("Content-Type: {}\n", file_type.get_content_type()).as_bytes(),
+            add_string(
+                &mut res,
+                format!("HTTP/1.1 {}\n", HttpStatusCode::Ok as u32),
+            );
+            add_string(
+                &mut res,
+                format!("Content-Type: {}\n", file_type.get_content_type()),
             );
 
             if let FileType::Png = file_type {
-                res.extend_from_slice(format!("Content-Length: {}\n", file_length).as_bytes());
+                add_string(&mut res, format!("Content-Length: {}\n", file_length));
             }
 
-            res.extend_from_slice("\n".as_bytes());
+            add_str(&mut res, "\n");
 
             res.extend_from_slice(&content);
         }
         Err(_) => {
-            res.extend_from_slice(
-                format!("HTTP/1.1 {}\n", HttpStatusCode::NotFound as u32).as_bytes(),
+            add_string(
+                &mut res,
+                format!("HTTP/1.1 {}\n", HttpStatusCode::NotFound as u32),
             );
-            res.extend_from_slice("Content-Type: text/html\n\n".as_bytes());
-            res.extend_from_slice("<h1> 404 - Page not found </h1>".as_bytes());
+            add_str(&mut res, "Content-Type: text/html\n\n");
+            add_str(&mut res, "<h1> 404 - Page not found </h1>");
         }
     };
 
     writer.write_all(&res).await.unwrap();
+}
+
+fn add_str(res: &mut Vec<u8>, str: &str) {
+    res.extend_from_slice(str.as_bytes());
+}
+
+fn add_string(res: &mut Vec<u8>, str: String) {
+    res.extend_from_slice(str.as_bytes());
 }
