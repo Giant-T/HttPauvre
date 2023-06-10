@@ -1,19 +1,19 @@
-use request::Request;
-use response::send_response;
+use request::request::Request;
+use response::response::send_response;
 use tokio::{
     io::BufReader,
-    net::{
-        tcp::{ReadHalf, WriteHalf},
-        TcpListener,
-    },
+    net::TcpListener,
 };
 
 mod request;
 mod response;
+mod status;
 
 #[tokio::main]
 async fn main() {
-    let listener = TcpListener::bind("localhost:8080").await.unwrap();
+    let host = "localhost:8080";
+    let listener = TcpListener::bind(host).await.unwrap();
+    println!("Server running on {}", host);
 
     loop {
         let (mut socket, _addr) = listener.accept().await.unwrap();
@@ -23,30 +23,12 @@ async fn main() {
 
             let mut reader = BufReader::new(reader);
 
-            loop {
-                if handle_request(&mut reader, &mut writer).await {
-                    break;
-                }
+            loop  {
+                let req = Request::from_tcp_reader(&mut reader).await;
+                send_response(req, &mut writer).await;
+                break;
             }
         });
     }
 }
 
-///
-/// Fonction qui envoie la bonne réponse au client.
-///
-/// Retourne vrai si une réponse à été envoyée au client.
-///
-async fn handle_request(reader: &mut BufReader<ReadHalf<'_>>, writer: &mut WriteHalf<'_>) -> bool {
-    let req = Request::from_tcp_reader(reader).await;
-
-    if let None = req {
-        return false;
-    }
-
-    let req = req.unwrap();
-
-    send_response(req, writer).await;
-
-    return true;
-}
