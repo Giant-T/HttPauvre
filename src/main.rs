@@ -15,6 +15,8 @@ async fn main() {
     let listener = TcpListener::bind(host).await.unwrap();
     println!("Server running on {}", host);
 
+    open::that(format!("http://{}", host)).unwrap();
+
     loop {
         let (mut socket, _addr) = listener.accept().await.unwrap();
 
