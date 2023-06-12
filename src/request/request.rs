@@ -23,14 +23,11 @@ impl Request {
     pub async fn from_tcp_reader(
         reader: &mut BufReader<ReadHalf<'_>>,
     ) -> Result<Self, HttpStatusCode> {
-        let mut buf = String::new();
-        
-        // src : https://stackoverflow.com/questions/54094037/how-can-a-web-server-know-when-an-http-request-is-fully-received
-        while !buf.ends_with("\r\n\r\n") {
-            reader.read_line(&mut buf).await.unwrap();
-        }
+        let mut args = String::new();
 
-        let mut args = buf.lines().next().unwrap().split(" ");
+        reader.read_line(&mut args).await.unwrap();
+
+        let mut args = args.split(" ");
 
         let method_str = args.next();
         let path_str = args.next();
@@ -42,21 +39,30 @@ impl Request {
 
         let method = Method::from_str(method_str.unwrap());
         let mut path = path_str.unwrap().to_string();
-        let protocol_version = protocol_version_str.unwrap();
+        let protocol_version = protocol_version_str.unwrap().trim();
 
         if protocol_version != "HTTP/1.1" {
             return Err(HttpStatusCode::HttpVersionNotSupported);
         }
 
+        let mut buf = String::new();
+        
+        // src : https://stackoverflow.com/questions/54094037/how-can-a-web-server-know-when-an-http-request-is-fully-received
+        while !buf.ends_with("\r\n\r\n") {
+            reader.read_line(&mut buf).await.unwrap();
+        }
+
         if path.ends_with("/") {
             path += "index.html";
         }
+        println!("{}", buf);
 
         let mut headers: HashMap<String, String> = HashMap::new();
 
         if buf.lines().count() > 2 {
             headers = Self::parse_headers(buf);
         }
+
 
         if let Ok(method) = method {
             return Ok(Request {
@@ -76,7 +82,6 @@ impl Request {
     fn parse_headers(buf: String) -> HashMap<String, String> {
         return buf
             .lines()
-            .skip(1)
             .collect::<Vec<_>>()
             .split_last()
             .unwrap()

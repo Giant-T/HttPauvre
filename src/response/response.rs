@@ -73,10 +73,11 @@ pub async fn send_response(req: Result<Request, HttpStatusCode>, writer: &mut Wr
     // TODO: Séparé en plus de fonctions
     match fs::File::open(format!("{}{}", DIR, req.path)).await {
         Ok(mut file) => {
-            // Ish ce n'est pas très beau
             let file_length = file.metadata().await.unwrap().len();
             let mut content = Vec::<u8>::with_capacity(file_length as usize);
-            let _ = file.read_to_end(&mut content).await.unwrap();
+
+            file.read_to_end(&mut content).await.unwrap();
+
             let file_type = FileType::from_str(req.path.as_str()).unwrap();
             let file_length = file_length.to_string();
 
@@ -88,12 +89,15 @@ pub async fn send_response(req: Result<Request, HttpStatusCode>, writer: &mut Wr
             }
 
             res.content = &content;
+
             writer.write_all(&res.as_bytes()).await.unwrap();
         }
         Err(_) => {
             res.status = HttpStatusCode::NotFound as u32;
             res.add_header("Content-Type", "text/html");
+
             res.content = "<h1> 404 - Page not found </h1>".as_bytes();
+
             writer.write_all(&res.as_bytes()).await.unwrap();
         }
     };
