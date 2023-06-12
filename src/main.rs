@@ -21,9 +21,9 @@ async fn main() {
         let (mut socket, addr) = listener.accept().await.unwrap();
 
 
-        println!("Request from : {}", addr.ip().to_string());
 
         tokio::spawn(async move {
+            println!("Request from : {}", addr.ip().to_string());
             let (reader, mut writer) = socket.split();
 
             let mut reader = BufReader::new(reader);
