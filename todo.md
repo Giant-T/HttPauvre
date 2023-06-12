@@ -11,3 +11,4 @@
 - [ ] Usage d'un certificat ssl
 - [ ] Optimisation...
 - [ ] Compression etc?
+- [ ] Tests, benchmark?
