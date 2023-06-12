@@ -20,8 +20,6 @@ async fn main() {
     loop {
         let (mut socket, addr) = listener.accept().await.unwrap();
 
-
-
         tokio::spawn(async move {
             println!("Request from : {}", addr.ip().to_string());
             let (reader, mut writer) = socket.split();

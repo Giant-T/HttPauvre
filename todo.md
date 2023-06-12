@@ -10,3 +10,4 @@
 ### Cela serait cool mais non nécessaire
 - [ ] Usage d'un certificat ssl
 - [ ] Optimisation...
+- [ ] Compression etc?
