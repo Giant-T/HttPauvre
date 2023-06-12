@@ -1,76 +1,100 @@
-use std::str::FromStr;
-
+use std::{collections::HashMap, str::FromStr};
 use tokio::{
     fs,
     io::{AsyncReadExt, AsyncWriteExt},
     net::tcp::WriteHalf,
 };
 
+use super::file::FileType;
 use crate::{request::request::Request, status::HttpStatusCode};
 
-use super::file::FileType;
-
 pub const DIR: &str = "www";
+
+struct Response<'a> {
+    pub status: u32,
+    headers: HashMap<&'a str, &'a str>,
+    pub content: &'a [u8],
+}
+
+impl<'a> Default for Response<'a> {
+    fn default() -> Self {
+        Response {
+            status: HttpStatusCode::InternalServerError as u32,
+            content: &[],
+            headers: HashMap::new(),
+        }
+    }
+}
+
+impl<'a> Response<'a> {
+    ///
+    /// Ajoute un header http à la réponse.
+    ///
+    pub fn add_header(&mut self, key: &'a str, value: &'a str) {
+        self.headers.insert(key, value);
+    }
+
+    ///
+    /// Retourne un vecteur correspondant à la réponse en bytes.
+    ///
+    pub fn as_bytes(&self) -> Vec<u8> {
+        let mut result = Vec::new();
+
+        result.extend_from_slice(format!("HTTP/1.1 {}\n", self.status).as_bytes());
+
+        for (key, value) in &self.headers {
+            result.extend_from_slice(format!("{}: {}\n", key, value).as_bytes());
+        }
+
+        result.extend_from_slice("\n".as_bytes());
+        result.extend_from_slice(&self.content);
+
+        return result;
+    }
+}
 
 ///
 /// Envoie la réponse au client http.
 ///
 pub async fn send_response(req: Result<Request, HttpStatusCode>, writer: &mut WriteHalf<'_>) {
-    let mut res = Vec::<u8>::new();
-    println!("{:?}", req);
+    let mut res = Response::default();
 
     if let Err(status) = req {
-        add_string(&mut res, format!("HTTP/1.1 {}\n", status as u32));
-        add_str(&mut res, "Content-Type: text/html\n\n");
-        add_str(&mut res, "<h1> An error has occured </h1>");
+        res.status = status as u32;
+        res.add_header("Content-Type", "text/html");
+        res.content = "<h1> An error has occured </h1>".as_bytes();
 
-        writer.write_all(&res).await.unwrap();
+        writer.write_all(&res.as_bytes()).await.unwrap();
         return;
     }
 
     let req = req.unwrap();
 
+    // TODO: Séparé en plus de fonctions
     match fs::File::open(format!("{}{}", DIR, req.path)).await {
         Ok(mut file) => {
+            // Ish ce n'est pas très beau
             let file_length = file.metadata().await.unwrap().len();
             let mut content = Vec::<u8>::with_capacity(file_length as usize);
             let _ = file.read_to_end(&mut content).await.unwrap();
             let file_type = FileType::from_str(req.path.as_str()).unwrap();
+            let file_length = file_length.to_string();
 
-            add_string(
-                &mut res,
-                format!("HTTP/1.1 {}\n", HttpStatusCode::Ok as u32),
-            );
-            add_string(
-                &mut res,
-                format!("Content-Type: {}\n", file_type.get_content_type()),
-            );
+            res.status = HttpStatusCode::Ok as u32;
+            res.add_header("Content-Type", file_type.get_content_type());
 
             if let FileType::Png = file_type {
-                add_string(&mut res, format!("Content-Length: {}\n", file_length));
+                res.add_header("Content-Length", file_length.as_str());
             }
 
-            add_str(&mut res, "\n");
-
-            res.extend_from_slice(&content);
+            res.content = &content;
+            writer.write_all(&res.as_bytes()).await.unwrap();
         }
         Err(_) => {
-            add_string(
-                &mut res,
-                format!("HTTP/1.1 {}\n", HttpStatusCode::NotFound as u32),
-            );
-            add_str(&mut res, "Content-Type: text/html\n\n");
-            add_str(&mut res, "<h1> 404 - Page not found </h1>");
+            res.status = HttpStatusCode::NotFound as u32;
+            res.add_header("Content-Type", "text/html");
+            res.content = "<h1> 404 - Page not found </h1>".as_bytes();
+            writer.write_all(&res.as_bytes()).await.unwrap();
         }
     };
-
-    writer.write_all(&res).await.unwrap();
-}
-
-fn add_str(res: &mut Vec<u8>, str: &str) {
-    res.extend_from_slice(str.as_bytes());
-}
-
-fn add_string(res: &mut Vec<u8>, str: String) {
-    res.extend_from_slice(str.as_bytes());
 }

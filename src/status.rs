@@ -10,6 +10,7 @@ pub enum HttpStatusCode {
     NotFound = 404,
 
     // Server errors
+    InternalServerError = 500,
     NotImplemented = 501,
     HttpVersionNotSupported = 505,
 }

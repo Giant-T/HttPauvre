@@ -18,18 +18,18 @@ async fn main() {
     open::that(format!("http://{}", host)).unwrap();
 
     loop {
-        let (mut socket, _addr) = listener.accept().await.unwrap();
+        let (mut socket, addr) = listener.accept().await.unwrap();
+
+
+        println!("Request from : {}", addr.ip().to_string());
 
         tokio::spawn(async move {
             let (reader, mut writer) = socket.split();
 
             let mut reader = BufReader::new(reader);
 
-            loop  {
-                let req = Request::from_tcp_reader(&mut reader).await;
-                send_response(req, &mut writer).await;
-                break;
-            }
+            let req = Request::from_tcp_reader(&mut reader).await;
+            send_response(req, &mut writer).await;
         });
     }
 }
