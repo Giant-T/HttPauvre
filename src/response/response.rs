@@ -1,37 +1,33 @@
 use std::{collections::HashMap, str::FromStr};
-use tokio::{
-    fs,
-    io::{AsyncReadExt, AsyncWriteExt},
-    net::tcp::WriteHalf,
-};
+use tokio::{fs, io::AsyncReadExt};
 
 use super::file::FileType;
 use crate::{request::request::Request, status::HttpStatusCode};
 
 pub const DIR: &str = "www";
 
-struct Response<'a> {
+pub struct Response {
     pub status: u32,
-    headers: HashMap<&'a str, &'a str>,
-    pub content: &'a [u8],
+    headers: HashMap<String, String>,
+    pub content: Vec<u8>,
 }
 
-impl<'a> Default for Response<'a> {
+impl Default for Response {
     fn default() -> Self {
         Response {
             status: HttpStatusCode::InternalServerError as u32,
-            content: &[],
+            content: Vec::new(),
             headers: HashMap::new(),
         }
     }
 }
 
-impl<'a> Response<'a> {
+impl Response {
     ///
     /// Ajoute un header http à la réponse.
     ///
-    pub fn add_header(&mut self, key: &'a str, value: &'a str) {
-        self.headers.insert(key, value);
+    pub fn add_header(&mut self, key: &str, value: &str) {
+        self.headers.insert(key.to_string(), value.to_string());
     }
 
     ///
@@ -51,54 +47,50 @@ impl<'a> Response<'a> {
 
         return result;
     }
-}
 
-///
-/// Envoie la réponse au client http.
-///
-pub async fn send_response(req: Result<Request, HttpStatusCode>, writer: &mut WriteHalf<'_>) {
-    let mut res = Response::default();
+    ///
+    /// Envoie la réponse au client http.
+    ///
+    pub async fn from_request(req: Result<Request, HttpStatusCode>) -> Response {
+        let mut res = Response::default();
 
-    if let Err(status) = req {
-        res.status = status as u32;
-        res.add_header("Content-Type", "text/html");
-        res.content = "<h1> An error has occured </h1>".as_bytes();
-
-        writer.write_all(&res.as_bytes()).await.unwrap();
-        return;
-    }
-
-    let req = req.unwrap();
-
-    // TODO: Séparé en plus de fonctions
-    match fs::File::open(format!("{}{}", DIR, req.path)).await {
-        Ok(mut file) => {
-            let file_length = file.metadata().await.unwrap().len();
-            let mut content = Vec::<u8>::with_capacity(file_length as usize);
-
-            file.read_to_end(&mut content).await.unwrap();
-
-            let file_type = FileType::from_str(req.path.as_str()).unwrap();
-            let file_length = file_length.to_string();
-
-            res.status = HttpStatusCode::Ok as u32;
-            res.add_header("Content-Type", file_type.get_content_type());
-
-            if let FileType::Png = file_type {
-                res.add_header("Content-Length", file_length.as_str());
-            }
-
-            res.content = &content;
-
-            writer.write_all(&res.as_bytes()).await.unwrap();
-        }
-        Err(_) => {
-            res.status = HttpStatusCode::NotFound as u32;
+        if let Err(status) = req {
+            res.status = status as u32;
             res.add_header("Content-Type", "text/html");
+            res.content = "<h1> An error has occured </h1>".as_bytes().to_vec();
 
-            res.content = "<h1> 404 - Page not found </h1>".as_bytes();
-
-            writer.write_all(&res.as_bytes()).await.unwrap();
+            return res;
         }
-    };
+
+        let req = req.unwrap();
+
+        // TODO: Séparé en plus de fonctions
+        match fs::File::open(format!("{}{}", DIR, req.path)).await {
+            Ok(mut file) => {
+                let file_length = file.metadata().await.unwrap().len();
+                let mut content = Vec::<u8>::with_capacity(file_length as usize);
+
+                file.read_to_end(&mut content).await.unwrap();
+
+                let file_type = FileType::from_str(req.path.as_str()).unwrap();
+                let file_length = file_length.to_string();
+
+                res.status = HttpStatusCode::Ok as u32;
+                res.add_header("Content-Type", file_type.get_content_type());
+
+                if let FileType::Png = file_type {
+                    res.add_header("Content-Length", file_length.as_str());
+                }
+
+                res.content = content;
+            }
+            Err(_) => {
+                res.status = HttpStatusCode::NotFound as u32;
+                res.add_header("Content-Type", "text/html");
+                res.content = "<h1> 404 - Page not found </h1>".as_bytes().to_vec();
+            }
+        };
+
+        return res;
+    }
 }

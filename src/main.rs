@@ -1,7 +1,7 @@
 use request::request::Request;
-use response::response::send_response;
+use response::response::Response;
 use tokio::{
-    io::BufReader,
+    io::{AsyncWriteExt, BufReader},
     net::TcpListener,
 };
 
@@ -27,8 +27,9 @@ async fn main() {
             let mut reader = BufReader::new(reader);
 
             let req = Request::from_tcp_reader(&mut reader).await;
-            send_response(req, &mut writer).await;
+            let res = Response::from_request(req).await;
+
+            writer.write_all(&res.as_bytes()).await.unwrap();
         });
     }
 }
-

@@ -29,17 +29,17 @@ impl Request {
 
         let mut args = args.split(" ");
 
-        let method_str = args.next();
-        let path_str = args.next();
-        let protocol_version_str = args.next();
+        let method = args.next();
+        let path = args.next();
+        let protocol_version = args.next();
 
-        let (Some(_), Some(_), Some(_)) = (method_str, path_str, protocol_version_str) else {
+        let (Some(_), Some(_), Some(_)) = (method, path, protocol_version) else {
             return Err(HttpStatusCode::BadRequest);
         };
 
-        let method = Method::from_str(method_str.unwrap());
-        let mut path = path_str.unwrap().to_string();
-        let protocol_version = protocol_version_str.unwrap().trim();
+        let method = Method::from_str(method.unwrap());
+        let mut path = path.unwrap().to_string();
+        let protocol_version = protocol_version.unwrap().trim();
 
         if protocol_version != "HTTP/1.1" {
             return Err(HttpStatusCode::HttpVersionNotSupported);
@@ -62,7 +62,6 @@ impl Request {
         if buf.lines().count() > 2 {
             headers = Self::parse_headers(buf);
         }
-
 
         if let Ok(method) = method {
             return Ok(Request {
