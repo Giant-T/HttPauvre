@@ -21,7 +21,7 @@ impl Request {
     /// Retourne les informations de la requête http
     ///
     pub async fn from_tcp_reader(
-        reader: &mut BufReader<ReadHalf<'_>>,
+        mut reader: BufReader<ReadHalf<'_>>,
     ) -> Result<Self, HttpStatusCode> {
         let mut args = String::new();
 
