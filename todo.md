@@ -2,7 +2,7 @@
 - [x] Ouverture du lien lors du lancement du serveur
 - [x] Meilleure gestion des réponses (a revoir)
 - [x] Implementation de timeout lors de la requete
-- [ ] Ajout de logs
+- [ ] Ajout de logs (en cours)
 - [ ] Ouvrir le port pour que le serveur soit accessible sur un autre appareil
 - [ ] Usage d'un fichier de configurations
 - [ ] Ajout d'autres methodes HTTP
