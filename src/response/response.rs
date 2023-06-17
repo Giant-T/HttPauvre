@@ -69,7 +69,7 @@ impl Response {
             Ok(mut file) => {
                 let file_length = file.metadata().await.unwrap().len();
                 let mut content = Vec::<u8>::with_capacity(file_length as usize);
-
+                      
                 file.read_to_end(&mut content).await.unwrap();
 
                 let file_type = FileType::from_str(req.path.as_str()).unwrap();
@@ -77,10 +77,7 @@ impl Response {
 
                 res.status = HttpStatusCode::Ok as u32;
                 res.add_header("Content-Type", file_type.get_content_type());
-
-                if let FileType::Png = file_type {
-                    res.add_header("Content-Length", file_length.as_str());
-                }
+                res.add_header("Content-Length", file_length.as_str());
 
                 res.content = content;
             }
