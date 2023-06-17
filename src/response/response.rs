@@ -17,7 +17,7 @@ impl Default for Response {
         Response {
             status: HttpStatusCode::InternalServerError as u32,
             content: Vec::new(),
-            headers: HashMap::new(),
+            headers: HashMap::from([("Server".to_string(), "httpauvre".to_string())]),
         }
     }
 }
@@ -55,8 +55,13 @@ impl Response {
         let mut res = Response::default();
 
         if let Err(status) = req {
-            res.status = status as u32;
             res.add_header("Content-Type", "text/html");
+
+            if let HttpStatusCode::RequestTimeout = status {
+                res.add_header("Connection", "close");
+            }
+
+            res.status = status as u32;
             res.content = "<h1> An error has occured </h1>".as_bytes().to_vec();
 
             return res;
@@ -69,7 +74,7 @@ impl Response {
             Ok(mut file) => {
                 let file_length = file.metadata().await.unwrap().len();
                 let mut content = Vec::<u8>::with_capacity(file_length as usize);
-                      
+
                 file.read_to_end(&mut content).await.unwrap();
 
                 let file_type = FileType::from_str(req.path.as_str()).unwrap();

@@ -1,8 +1,9 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::HashMap, str::FromStr, time::Duration};
 
 use tokio::{
-    io::{BufReader, AsyncBufReadExt},
+    io::{AsyncBufReadExt, BufReader},
     net::tcp::ReadHalf,
+    time::Instant,
 };
 
 use crate::status::HttpStatusCode;
@@ -16,6 +17,8 @@ pub struct Request {
     pub headers: HashMap<String, String>,
 }
 
+const TIMEOUT_S: u64 = 10;
+
 impl Request {
     ///
     /// Retourne les informations de la requête http
@@ -27,39 +30,40 @@ impl Request {
 
         reader.read_line(&mut args).await.unwrap();
 
-        let mut args = args.split(" ");
+        let args = Self::parse_method_path_protocol(args);
 
-        let method = args.next();
-        let path = args.next();
-        let protocol_version = args.next();
+        if let Err(status) = args {
+            return Err(status);
+        }
 
-        let (Some(_), Some(_), Some(_)) = (method, path, protocol_version) else {
-            return Err(HttpStatusCode::BadRequest);
-        };
-
-        let method = Method::from_str(method.unwrap());
-        let mut path = path.unwrap().to_string();
-        let protocol_version = protocol_version.unwrap().trim();
+        let (method, mut path, protocol_version) = args.unwrap();
 
         if protocol_version != "HTTP/1.1" {
             return Err(HttpStatusCode::HttpVersionNotSupported);
         }
 
         let mut buf = String::new();
-        
+
+        let now = Instant::now();
+
         // src : https://stackoverflow.com/questions/54094037/how-can-a-web-server-know-when-an-http-request-is-fully-received
         while !buf.ends_with("\r\n\r\n") {
             reader.read_line(&mut buf).await.unwrap();
+
+            if now.elapsed() == Duration::from_secs(TIMEOUT_S) {
+                return Err(HttpStatusCode::RequestTimeout);
+            }
         }
 
         if path.ends_with("/") {
             path += "index.html";
         }
+
         println!("{}", buf);
 
         let mut headers: HashMap<String, String> = HashMap::new();
 
-        if buf.lines().count() > 2 {
+        if buf.lines().count() > 1 {
             headers = Self::parse_headers(buf);
         }
 
@@ -72,6 +76,30 @@ impl Request {
         }
 
         return Err(method.unwrap_err());
+    }
+
+    ///
+    /// Parse la methode, le chemin ainsi que le protocole utilisé lors de la
+    /// requête envoyé par le client.
+    ///
+    fn parse_method_path_protocol(
+        buf: String,
+    ) -> Result<(Result<Method, HttpStatusCode>, String, String), HttpStatusCode> {
+        let mut args = buf.split(" ");
+
+        let method = args.next();
+        let path = args.next();
+        let protocol_version = args.next();
+
+        let (Some(_), Some(_), Some(_)) = (method, path, protocol_version) else {
+            return Err(HttpStatusCode::BadRequest);
+        };
+
+        return Ok((
+            Method::from_str(method.unwrap()),
+            path.unwrap().to_string(),
+            protocol_version.unwrap().trim().to_string(),
+        ));
     }
 
     ///

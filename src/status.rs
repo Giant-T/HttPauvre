@@ -8,6 +8,7 @@ pub enum HttpStatusCode {
     // Request errors
     BadRequest = 400,
     NotFound = 404,
+    RequestTimeout = 408,
 
     // Server errors
     InternalServerError = 500,
