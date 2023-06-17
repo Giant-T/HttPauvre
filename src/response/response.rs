@@ -1,3 +1,4 @@
+use log::{info, error};
 use std::{collections::HashMap, str::FromStr};
 use tokio::{fs, io::AsyncReadExt};
 
@@ -55,6 +56,8 @@ impl Response {
         let mut res = Response::default();
 
         if let Err(status) = req {
+            error!("an error has occured: {:?}", status);
+
             res.add_header("Content-Type", "text/html");
 
             if let HttpStatusCode::RequestTimeout = status {
@@ -87,6 +90,8 @@ impl Response {
                 res.content = content;
             }
             Err(_) => {
+                info!("ressource not found");
+
                 res.status = HttpStatusCode::NotFound as u32;
                 res.add_header("Content-Type", "text/html");
                 res.content = "<h1> 404 - Page not found </h1>".as_bytes().to_vec();

@@ -1,9 +1,8 @@
-use std::{collections::HashMap, str::FromStr, time::Duration};
+use std::{collections::HashMap, str::FromStr};
 
 use tokio::{
     io::{AsyncBufReadExt, BufReader},
     net::tcp::ReadHalf,
-    time::Instant,
 };
 
 use crate::status::HttpStatusCode;
@@ -16,8 +15,6 @@ pub struct Request {
     pub path: String,
     pub headers: HashMap<String, String>,
 }
-
-const TIMEOUT_S: u64 = 10;
 
 impl Request {
     ///
@@ -44,22 +41,14 @@ impl Request {
 
         let mut buf = String::new();
 
-        let now = Instant::now();
-
         // src : https://stackoverflow.com/questions/54094037/how-can-a-web-server-know-when-an-http-request-is-fully-received
         while !buf.ends_with("\r\n\r\n") {
             reader.read_line(&mut buf).await.unwrap();
-
-            if now.elapsed() == Duration::from_secs(TIMEOUT_S) {
-                return Err(HttpStatusCode::RequestTimeout);
-            }
         }
 
         if path.ends_with("/") {
             path += "index.html";
         }
-
-        println!("{}", buf);
 
         let mut headers: HashMap<String, String> = HashMap::new();
 
