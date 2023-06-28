@@ -9,7 +9,7 @@ pub const DIR: &str = "www";
 
 pub struct Response {
     pub status: u32,
-    headers: HashMap<String, String>,
+    headers: HashMap<Box<str>, Box<str>>,
     pub content: Vec<u8>,
 }
 
@@ -18,7 +18,7 @@ impl Default for Response {
         Response {
             status: HttpStatusCode::InternalServerError as u32,
             content: Vec::new(),
-            headers: HashMap::from([("Server".to_string(), "httpauvre".to_string())]),
+            headers: HashMap::from([(Box::from("Server"), Box::from("httpauvre"))]),
         }
     }
 }
@@ -28,7 +28,7 @@ impl Response {
     /// Ajoute un header http à la réponse.
     ///
     pub fn add_header(&mut self, key: &str, value: &str) {
-        self.headers.insert(key.to_string(), value.to_string());
+        self.headers.insert(Box::from(key), Box::from(value));
     }
 
     ///
@@ -60,9 +60,6 @@ impl Response {
 
             res.add_header("Content-Type", "text/html");
 
-            if let HttpStatusCode::RequestTimeout = status {
-                res.add_header("Connection", "close");
-            }
 
             res.status = status as u32;
             res.content = "<h1> An error has occured </h1>".as_bytes().to_vec();

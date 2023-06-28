@@ -13,7 +13,7 @@ use super::method::Method;
 pub struct Request {
     pub method: Method,
     pub path: String,
-    pub headers: HashMap<String, String>,
+    pub headers: HashMap<Box<str>, Box<str>>,
 }
 
 impl Request {
@@ -50,7 +50,7 @@ impl Request {
             path += "index.html";
         }
 
-        let mut headers: HashMap<String, String> = HashMap::new();
+        let mut headers: HashMap<Box<str>, Box<str>> = HashMap::new();
 
         if buf.lines().count() > 1 {
             headers = Self::parse_headers(buf);
@@ -95,7 +95,7 @@ impl Request {
     /// Parse les headers et construit une hashmap de clef et de valeurs
     /// qui represente les headers de la requete.
     ///
-    fn parse_headers(buf: String) -> HashMap<String, String> {
+    fn parse_headers(buf: String) -> HashMap<Box<str>, Box<str>> {
         return buf
             .lines()
             .collect::<Vec<_>>()
@@ -105,7 +105,7 @@ impl Request {
             .iter()
             .map(|s| {
                 let h = s.split_once(": ").unwrap();
-                return (h.0.to_string(), h.1.to_string());
+                return (Box::from(h.0), Box::from(h.1));
             })
             .collect();
     }

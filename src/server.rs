@@ -1,4 +1,4 @@
-use std::{rc::Rc, time::Duration};
+use std::time::Duration;
 
 use log::{error, info};
 use tokio::{
@@ -10,17 +10,17 @@ use tokio::{
 use crate::{request::request::Request, response::response::Response, status::HttpStatusCode};
 
 pub struct Server {
-    host: Rc<str>,
-    port: Rc<str>,
+    host: Box<str>,
+    port: Box<str>,
 }
 
-const TIMEOUT_S: u64 = 10;
+const TIMEOUT_S: u64 = 5;
 
 impl Server {
     pub fn new(host: &str, port: &str) -> Self {
         return Server {
-            host: Rc::from(host),
-            port: Rc::from(port),
+            host: Box::from(host),
+            port: Box::from(port),
         };
     }
 
@@ -35,7 +35,7 @@ impl Server {
     ///
     /// Démarre le serveur sur l'hôte et le port définis lors de sa création.
     ///
-    pub async fn start(&self) {
+    pub async fn start(&self) -> ! {
         let formatted_host = format!("{}:{}", self.host, self.port);
 
         let listener = TcpListener::bind(&formatted_host).await.unwrap();
