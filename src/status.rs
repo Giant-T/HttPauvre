@@ -16,8 +16,8 @@ pub enum HttpStatusCode {
     HttpVersionNotSupported = 505,
 }
 
-impl From<tokio::io::Error> for HttpStatusCode {
-    fn from(_value: tokio::io::Error) -> Self {
+impl From<std::io::Error> for HttpStatusCode {
+    fn from(_value: std::io::Error) -> Self {
         Self::InternalServerError
     }
 }
