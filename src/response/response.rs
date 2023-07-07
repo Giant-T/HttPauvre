@@ -1,5 +1,5 @@
-use log::{error, info};
-use std::{collections::HashMap, str::FromStr, io::Error};
+use log::error;
+use std::{collections::HashMap, io::Error, str::FromStr};
 use tokio::{
     fs::{self, File},
     io::AsyncReadExt,
@@ -62,16 +62,9 @@ impl Response {
 
         let req = req.unwrap();
 
-        match fs::File::open(format!("{}{}", DIR, req.path)).await {
-            Ok(file) => {
-                let res = Self::generate_response_from_file(file, req).await?;
-                return Ok(res);
-            }
-            Err(_) => {
-                info!("ressource not found");
-                return Ok(Self::generate_error_response(HttpStatusCode::NotFound));
-            }
-        };
+        let file = fs::File::open(format!("{}{}", DIR, req.path)).await?;
+        let res = Self::generate_response_from_file(file, req).await?;
+        return Ok(res);
     }
 
     ///
@@ -104,6 +97,10 @@ impl Response {
         error!("an error has occured: {:?}", status);
 
         res.add_header("Content-Type", "text/html");
+
+        if let HttpStatusCode::RequestTimeout = status {
+            res.add_header("Connection", "close");
+        }
 
         res.status = status as u32;
         res.content = "<h1> An error has occured </h1>".as_bytes().to_vec();

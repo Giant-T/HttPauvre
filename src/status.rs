@@ -1,3 +1,5 @@
+use std::io::ErrorKind;
+
 #[allow(dead_code)]
 #[derive(Debug)]
 pub enum HttpStatusCode {
@@ -7,6 +9,7 @@ pub enum HttpStatusCode {
 
     // Request errors
     BadRequest = 400,
+    Forbidden = 403,
     NotFound = 404,
     RequestTimeout = 408,
 
@@ -17,7 +20,11 @@ pub enum HttpStatusCode {
 }
 
 impl From<std::io::Error> for HttpStatusCode {
-    fn from(_value: std::io::Error) -> Self {
-        Self::InternalServerError
+    fn from(value: std::io::Error) -> Self {
+        match value.kind() {
+            ErrorKind::PermissionDenied => HttpStatusCode::Forbidden,
+            ErrorKind::NotFound => HttpStatusCode::NotFound,
+            _ => HttpStatusCode::InternalServerError,
+        }
     }
 }

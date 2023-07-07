@@ -1,10 +1,9 @@
 use std::{env, time::Duration};
 
-use log::{error, info};
+use log::info;
 use tokio::{
     io::{AsyncWriteExt, BufReader},
     net::{tcp::ReadHalf, TcpListener},
-    time::timeout,
 };
 
 use crate::{request::request::Request, response::response::Response, status::HttpStatusCode};
@@ -30,15 +29,15 @@ impl Server {
     ///
     /// Genere la réponse à partir de la requête du client.
     ///
-    async fn generate_response(reader: BufReader<ReadHalf<'_>>, res: &mut Response) {
+    async fn generate_response(reader: BufReader<ReadHalf<'_>>) -> Response {
         let req = Request::parse_request(reader).await;
         let result = Response::from_request(req).await;
 
-        if let Err(_) = result {
-            *res = Response::generate_error_response(HttpStatusCode::InternalServerError);
-        } else {
-            *res = result.unwrap();
+        if let Err(error) = result {
+            return Response::generate_error_response(HttpStatusCode::from(error));
         }
+
+        return result.unwrap();
     }
 
     ///
@@ -61,25 +60,15 @@ impl Server {
                 let (reader, mut writer) = socket.split();
                 let reader = BufReader::new(reader);
 
-                let mut res: Response = Response::default();
-
-                if let Err(_) = timeout(
-                    Duration::from_secs(self.timeout_s),
-                    Self::generate_response(reader, &mut res),
-                )
-                .await
-                {
-                    error!("connection timed out");
-                    res = Response::default();
-                    res.status = HttpStatusCode::RequestTimeout as u32;
-
-                    res.add_header("Content-Type", "text/html");
-                    res.add_header("Connection", "close");
-
-                    res.content = "".as_bytes().to_vec();
+                tokio::select! {
+                    res = Self::generate_response(reader) => {
+                        _ = writer.write_all(&res.as_bytes()).await;
+                    }
+                    _ = tokio::time::sleep(Duration::from_secs(self.timeout_s)) => {
+                        let res = Response::generate_error_response(HttpStatusCode::RequestTimeout);
+                        _ = writer.write_all(&res.as_bytes()).await;
+                    }
                 }
-
-                writer.write_all(&res.as_bytes()).await.unwrap();
             });
         }
     }
