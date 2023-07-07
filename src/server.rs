@@ -31,7 +31,7 @@ impl Server {
     /// Genere la réponse à partir de la requête du client.
     ///
     async fn generate_response(reader: BufReader<ReadHalf<'_>>, res: &mut Response) {
-        let req = Request::from_tcp_reader(reader).await;
+        let req = Request::parse_request(reader).await;
         *res = Response::from_request(req).await;
     }
 
