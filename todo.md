@@ -2,8 +2,8 @@
 - [x] Ouverture du lien lors du lancement du serveur
 - [x] Meilleure gestion des réponses (a revoir)
 - [x] Implementation de timeout lors de la requete
+- [ ] Gestion erreur from erreur et utilisation de ? (en cours)
 - [ ] Ajout de logs (en cours)
-- [ ] Gestion erreur from std erreur et utilisation de ?
 - [ ] Ouvrir le port pour que le serveur soit accessible sur un autre appareil
 - [ ] Usage d'un fichier de configurations
 - [ ] Ajout d'autres methodes HTTP

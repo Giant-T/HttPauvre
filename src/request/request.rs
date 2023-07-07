@@ -25,15 +25,12 @@ impl Request {
     ) -> Result<Self, HttpStatusCode> {
         let mut args = String::new();
 
-        reader.read_line(&mut args).await.unwrap();
+        reader.read_line(&mut args).await?;
 
-        let args = Self::parse_method_path_protocol(args);
+        let args = Self::parse_method_path_protocol(args)?;
 
-        if let Err(status) = args {
-            return Err(status);
-        }
-
-        let (method, mut path, protocol_version) = args.unwrap();
+        let (method, mut path, protocol_version) = args;
+        let method = method?;
 
         if protocol_version != "HTTP/1.1" {
             return Err(HttpStatusCode::HttpVersionNotSupported);
@@ -43,7 +40,7 @@ impl Request {
 
         // src : https://stackoverflow.com/questions/54094037/how-can-a-web-server-know-when-an-http-request-is-fully-received
         while !buf.ends_with("\r\n\r\n") {
-            reader.read_line(&mut buf).await.unwrap();
+            reader.read_line(&mut buf).await?;
         }
 
         if path.ends_with("/") {
@@ -56,15 +53,11 @@ impl Request {
             headers = Self::parse_headers(buf);
         }
 
-        if let Ok(method) = method {
-            return Ok(Request {
-                path,
-                method,
-                headers,
-            });
-        }
-
-        return Err(method.unwrap_err());
+        return Ok(Request {
+            path,
+            method,
+            headers,
+        });
     }
 
     ///
