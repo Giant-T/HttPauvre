@@ -1,4 +1,4 @@
-use log::{info, error};
+use log::{error, info};
 use std::{collections::HashMap, str::FromStr};
 use tokio::{fs, io::AsyncReadExt};
 
@@ -50,7 +50,7 @@ impl Response {
     }
 
     ///
-    /// Envoie la réponse au client http.
+    /// Crée la réponse à partir de la requete du client.
     ///
     pub async fn from_request(req: Result<Request, HttpStatusCode>) -> Response {
         let mut res = Response::default();
@@ -60,7 +60,6 @@ impl Response {
 
             res.add_header("Content-Type", "text/html");
 
-
             res.status = status as u32;
             res.content = "<h1> An error has occured </h1>".as_bytes().to_vec();
 
@@ -69,7 +68,6 @@ impl Response {
 
         let req = req.unwrap();
 
-        // TODO: Séparé en plus de fonctions
         match fs::File::open(format!("{}{}", DIR, req.path)).await {
             Ok(mut file) => {
                 let file_length = file.metadata().await.unwrap().len();

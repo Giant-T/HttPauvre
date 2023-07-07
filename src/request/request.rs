@@ -47,11 +47,7 @@ impl Request {
             path += "index.html";
         }
 
-        let mut headers: HashMap<Box<str>, Box<str>> = HashMap::new();
-
-        if buf.lines().count() > 1 {
-            headers = Self::parse_headers(buf);
-        }
+        let headers = Self::parse_headers(buf).unwrap_or_default();
 
         return Ok(Request {
             path,
@@ -73,33 +69,34 @@ impl Request {
         let path = args.next();
         let protocol_version = args.next();
 
-        let (Some(_), Some(_), Some(_)) = (method, path, protocol_version) else {
-            return Err(HttpStatusCode::BadRequest);
-        };
+        if let (Some(method), Some(path), Some(protocol_version)) = (method, path, protocol_version)
+        {
+            return Ok((
+                Method::from_str(method),
+                path.to_string(),
+                protocol_version.trim().to_string(),
+            ));
+        }
 
-        return Ok((
-            Method::from_str(method.unwrap()),
-            path.unwrap().to_string(),
-            protocol_version.unwrap().trim().to_string(),
-        ));
+        return Err(HttpStatusCode::BadRequest);
     }
 
     ///
     /// Parse les headers et construit une hashmap de clef et de valeurs
     /// qui represente les headers de la requete.
     ///
-    fn parse_headers(buf: String) -> HashMap<Box<str>, Box<str>> {
-        return buf
-            .lines()
-            .collect::<Vec<_>>()
-            .split_last()
-            .unwrap()
-            .1
-            .iter()
-            .map(|s| {
-                let h = s.split_once(": ").unwrap();
-                return (Box::from(h.0), Box::from(h.1));
-            })
-            .collect();
+    fn parse_headers(buf: String) -> Option<HashMap<Box<str>, Box<str>>> {
+        return Some(
+            buf.lines()
+                .collect::<Vec<_>>()
+                .split_last()?
+                .1
+                .iter()
+                .filter_map(|s| {
+                    let h = s.split_once(": ")?;
+                    return Some((Box::from(h.0), Box::from(h.1)));
+                })
+                .collect(),
+        );
     }
 }
