@@ -1,8 +1,8 @@
 # Liste des choses qu'il reste à faire
 - [x] Ouverture du lien lors du lancement du serveur
-- [x] Meilleure gestion des réponses (a revoir)
+- [x] Meilleure gestion des réponses
 - [x] Implementation de timeout lors de la requete
-- [ ] Gestion erreur from erreur et utilisation de ? (en cours)
+- [x] Gestion erreur from erreur et utilisation de ?
 - [ ] Ajout de logs (en cours)
 - [ ] Ouvrir le port pour que le serveur soit accessible sur un autre appareil
 - [ ] Usage d'un fichier de configurations
