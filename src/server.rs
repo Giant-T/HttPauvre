@@ -32,7 +32,13 @@ impl Server {
     ///
     async fn generate_response(reader: BufReader<ReadHalf<'_>>, res: &mut Response) {
         let req = Request::parse_request(reader).await;
-        *res = Response::from_request(req).await;
+        let result = Response::from_request(req).await;
+
+        if let Err(_) = result {
+            *res = Response::generate_error_response(HttpStatusCode::InternalServerError);
+        } else {
+            *res = result.unwrap();
+        }
     }
 
     ///

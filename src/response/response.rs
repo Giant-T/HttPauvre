@@ -1,6 +1,9 @@
 use log::{error, info};
-use std::{collections::HashMap, str::FromStr};
-use tokio::{fs, io::AsyncReadExt};
+use std::{collections::HashMap, str::FromStr, io::Error};
+use tokio::{
+    fs::{self, File},
+    io::AsyncReadExt,
+};
 
 use super::file::FileType;
 use crate::{request::request::Request, status::HttpStatusCode};
@@ -52,46 +55,58 @@ impl Response {
     ///
     /// Crée la réponse à partir de la requete du client.
     ///
-    pub async fn from_request(req: Result<Request, HttpStatusCode>) -> Response {
-        let mut res = Response::default();
-
+    pub async fn from_request(req: Result<Request, HttpStatusCode>) -> Result<Self, Error> {
         if let Err(status) = req {
-            error!("an error has occured: {:?}", status);
-
-            res.add_header("Content-Type", "text/html");
-
-            res.status = status as u32;
-            res.content = "<h1> An error has occured </h1>".as_bytes().to_vec();
-
-            return res;
+            return Ok(Self::generate_error_response(status));
         }
 
         let req = req.unwrap();
 
         match fs::File::open(format!("{}{}", DIR, req.path)).await {
-            Ok(mut file) => {
-                let file_length = file.metadata().await.unwrap().len();
-                let mut content = Vec::<u8>::with_capacity(file_length as usize);
-
-                file.read_to_end(&mut content).await.unwrap();
-
-                let file_type = FileType::from_str(req.path.as_str()).unwrap();
-                let file_length = file_length.to_string();
-
-                res.status = HttpStatusCode::Ok as u32;
-                res.add_header("Content-Type", file_type.get_content_type());
-                res.add_header("Content-Length", file_length.as_str());
-
-                res.content = content;
+            Ok(file) => {
+                let res = Self::generate_response_from_file(file, req).await?;
+                return Ok(res);
             }
             Err(_) => {
                 info!("ressource not found");
-
-                res.status = HttpStatusCode::NotFound as u32;
-                res.add_header("Content-Type", "text/html");
-                res.content = "<h1> 404 - Page not found </h1>".as_bytes().to_vec();
+                return Ok(Self::generate_error_response(HttpStatusCode::NotFound));
             }
         };
+    }
+
+    ///
+    /// Genere une reponse a partir d'un fichier
+    ///
+    async fn generate_response_from_file(mut file: File, req: Request) -> Result<Self, Error> {
+        let mut res = Response::default();
+        let file_length = file.metadata().await?.len();
+        let mut content = Vec::<u8>::with_capacity(file_length as usize);
+
+        file.read_to_end(&mut content).await?;
+
+        let file_type = FileType::from_str(req.path.as_str()).unwrap();
+        let file_length = file_length.to_string();
+
+        res.status = HttpStatusCode::Ok as u32;
+        res.add_header("Content-Type", file_type.get_content_type());
+        res.add_header("Content-Length", file_length.as_str());
+
+        res.content = content;
+
+        return Ok(res);
+    }
+
+    ///
+    /// Genere une reponse d'erreur
+    ///
+    pub fn generate_error_response(status: HttpStatusCode) -> Self {
+        let mut res = Self::default();
+        error!("an error has occured: {:?}", status);
+
+        res.add_header("Content-Type", "text/html");
+
+        res.status = status as u32;
+        res.content = "<h1> An error has occured </h1>".as_bytes().to_vec();
 
         return res;
     }
