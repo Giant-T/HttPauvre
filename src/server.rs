@@ -50,8 +50,6 @@ impl Server {
 
         info!("server running on {}", formatted_host);
 
-        open::that(format!("http://{}", formatted_host)).unwrap();
-
         loop {
             let (mut socket, addr) = listener.accept().await.unwrap();
 

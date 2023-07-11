@@ -3,8 +3,8 @@
 - [x] Meilleure gestion des réponses
 - [x] Implementation de timeout lors de la requete
 - [x] Gestion erreur from erreur et utilisation de ?
-- [ ] Ajout de logs (en cours)
-- [ ] Ouvrir le port pour que le serveur soit accessible sur un autre appareil
+- [x] Ajout de logs
+- [x] Ouvrir le port pour que le serveur soit accessible sur un autre appareil (Il suffisait seulement de changer l'addresse ip pour autre chose que 127.0.0.1)
 - [ ] Usage d'un fichier de configurations
 - [ ] Ajout d'autres methodes HTTP
 
