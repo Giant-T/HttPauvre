@@ -4,9 +4,10 @@
 - [x] Implementation de timeout lors de la requete
 - [x] Gestion erreur from erreur et utilisation de ?
 - [x] Ajout de logs
-- [x] Ouvrir le port pour que le serveur soit accessible sur un autre appareil (Il suffisait seulement de changer l'addresse ip pour autre chose que 127.0.0.1)
+- [x] Ouvrir le port pour que le serveur soit accessible sur un autre appareil 
+        (Il suffisait seulement de changer l'addresse ip pour autre chose que 127.0.0.1)
 - [ ] Usage d'un fichier de configurations
-- [ ] Ajout d'autres methodes HTTP
+- [ ] Ajout d'autres methodes HTTP (ou pas)
 
 ### Cela serait cool mais non nécessaire
 - [ ] Usage d'un certificat ssl
