@@ -1,4 +1,4 @@
-use std::{env, time::Duration};
+use std::{env, time::Duration, net::Ipv4Addr};
 
 use log::info;
 use tokio::{
@@ -9,15 +9,15 @@ use tokio::{
 use crate::{request::request::Request, response::response::Response, status::HttpStatusCode};
 
 pub struct Server {
-    host: Box<str>,
+    host: Ipv4Addr,
     port: Box<str>,
     pub timeout_s: u64,
 }
 
 impl Server {
-    pub fn new(host: &str, port: &str) -> Self {
+    pub fn new(host: Ipv4Addr, port: &str) -> Self {
         return Server {
-            host: Box::from(host),
+            host,
             port: Box::from(port),
             timeout_s: env::var("TIMEOUT_S")
                 .unwrap_or("5".to_string())
