@@ -1,0 +1,4 @@
+[server]
+host = "192.168.2.23"
+port = 8080
+timeout = 5

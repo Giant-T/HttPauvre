@@ -1,4 +1,4 @@
-use std::{env, time::Duration, net::Ipv4Addr};
+use std::{net::Ipv4Addr, time::Duration};
 
 use log::info;
 use tokio::{
@@ -6,23 +6,32 @@ use tokio::{
     net::{tcp::ReadHalf, TcpListener},
 };
 
-use crate::{request::request::Request, response::response::Response, status::HttpStatusCode};
+use crate::{
+    config::Config, request::request::Request, response::response::Response, status::HttpStatusCode,
+};
 
 pub struct Server {
-    host: Ipv4Addr,
-    port: Box<str>,
-    pub timeout_s: u64,
+    host: String,
+    port: u32,
+    timeout: u64,
 }
 
 impl Server {
-    pub fn new(host: Ipv4Addr, port: &str) -> Self {
+    pub fn new(host: Ipv4Addr, port: u32) -> Self {
         return Server {
-            host,
-            port: Box::from(port),
-            timeout_s: env::var("TIMEOUT_S")
-                .unwrap_or("5".to_string())
-                .parse()
-                .unwrap_or(5),
+            host: host.to_string(),
+            port,
+            timeout: 5,
+        };
+    }
+
+    pub fn from_config() -> Self {
+        let config: Config = toml::from_str(include_str!("../config.toml")).unwrap();
+
+        return Server {
+            host: config.server.host,
+            port: config.server.port,
+            timeout: config.server.timeout,
         };
     }
 
@@ -62,7 +71,7 @@ impl Server {
                     res = Self::generate_response(reader) => {
                         _ = writer.write_all(&res.as_bytes()).await;
                     }
-                    _ = tokio::time::sleep(Duration::from_secs(self.timeout_s)) => {
+                    _ = tokio::time::sleep(Duration::from_secs(self.timeout)) => {
                         let res = Response::generate_error_response(HttpStatusCode::RequestTimeout);
                         _ = writer.write_all(&res.as_bytes()).await;
                     }

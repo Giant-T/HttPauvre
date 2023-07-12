@@ -8,7 +8,7 @@ use tokio::{
 use super::file::FileType;
 use crate::{request::request::Request, status::HttpStatusCode};
 
-pub const DIR: &str = "www";
+pub const DIR: &str = "D:\\Projets\\httpauvre\\www";
 
 pub struct Response {
     pub status: u32,
